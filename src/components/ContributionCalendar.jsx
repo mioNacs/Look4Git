@@ -1,10 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { CalendarIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
+import { CalendarIcon, ArrowPathIcon, ChartBarIcon } from '@heroicons/react/24/outline';
 
 const ContributionCalendar = ({ username, darkMode }) => {
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
+  const [error, setError] = useState(null);
   const [retryCount, setRetryCount] = useState(0);
+  const [viewMode, setViewMode] = useState('heatmap');
+  const [contributions, setContributions] = useState([]);
+  const maxRetries = 3;
   const imgRef = useRef(null);
   const chartUrlRef = useRef('');
   
@@ -14,7 +17,7 @@ const ContributionCalendar = ({ username, darkMode }) => {
     
     // Reset states when username changes
     setLoading(true);
-    setError(false);
+    setError(null);
     setRetryCount(0);
     
     // Use more distinct colors for dark/light mode that match our design
@@ -27,18 +30,169 @@ const ContributionCalendar = ({ username, darkMode }) => {
     }
   }, [username, darkMode]);
 
-  const handleRetry = () => {
-    if (retryCount < 3) {
-      setLoading(true);
-      setError(false);
-      setRetryCount(prev => prev + 1);
-      
-      // Force reload the image
-      if (imgRef.current) {
-        const newUrl = `${chartUrlRef.current}?retry=${Date.now()}`;
-        imgRef.current.src = newUrl;
+  useEffect(() => {
+    const fetchContributions = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await fetch(`https://github-contributions-api.jogruber.de/v4/${username}?y=last`);
+        if (!response.ok) throw new Error('Failed to fetch contribution data');
+        const data = await response.json();
+        
+        // Transform data for both views
+        const transformedData = data.contributions.map(day => ({
+          date: new Date(day.date),
+          count: day.count
+        }));
+        setContributions(transformedData);
+      } catch (err) {
+        setError(err.message);
+        if (retryCount < maxRetries) {
+          setRetryCount(prev => prev + 1);
+        }
+      } finally {
+        setLoading(false);
       }
-    }
+    };
+
+    fetchContributions();
+  }, [username, retryCount]);
+
+  const handleRetry = () => {
+    setRetryCount(0);
+  };
+
+  const maxContributions = Math.max(...contributions.map(d => d.count));
+  const minDate = new Date();
+  minDate.setFullYear(minDate.getFullYear() - 1);
+
+  const renderHeatmap = () => (
+    <div className="w-full overflow-x-auto">
+      <img
+        ref={imgRef}
+        src={chartUrlRef.current}
+        alt={`${username}'s GitHub contribution chart`}
+        className="w-full h-auto"
+        onError={() => setError('Failed to load contribution chart')}
+      />
+    </div>
+  );
+
+  const renderLineChart = () => {
+    const width = 800;
+    const height = 300;
+    const padding = 40;
+    const xScale = width / contributions.length;
+    const yScale = height / (maxContributions || 1);
+
+    return (
+      <div className="w-full overflow-x-auto">
+        <svg width={width + padding * 2} height={height + padding * 2} className="mx-auto">
+          {/* X-axis */}
+          <line
+            x1={padding}
+            y1={height + padding}
+            x2={width + padding}
+            y2={height + padding}
+            stroke={darkMode ? '#4B5563' : '#D1D5DB'}
+            strokeWidth="1"
+          />
+          
+          {/* Y-axis */}
+          <line
+            x1={padding}
+            y1={padding}
+            x2={padding}
+            y2={height + padding}
+            stroke={darkMode ? '#4B5563' : '#D1D5DB'}
+            strokeWidth="1"
+          />
+
+          {/* X-axis labels (months) */}
+          {Array.from({ length: 12 }, (_, i) => {
+            const date = new Date(minDate);
+            date.setMonth(date.getMonth() + i);
+            const x = padding + (i * width / 12);
+            return (
+              <g key={i}>
+                <line
+                  x1={x}
+                  y1={height + padding}
+                  x2={x}
+                  y2={height + padding + 5}
+                  stroke={darkMode ? '#4B5563' : '#D1D5DB'}
+                  strokeWidth="1"
+                />
+                <text
+                  x={x}
+                  y={height + padding + 20}
+                  textAnchor="middle"
+                  fill={darkMode ? '#9CA3AF' : '#6B7280'}
+                  fontSize="12"
+                >
+                  {date.toLocaleString('default', { month: 'short' })}
+                </text>
+              </g>
+            );
+          })}
+
+          {/* Y-axis labels */}
+          {Array.from({ length: 5 }, (_, i) => {
+            const value = Math.round((maxContributions * i) / 4);
+            const y = height + padding - (value * yScale);
+            return (
+              <g key={i}>
+                <line
+                  x1={padding - 5}
+                  y1={y}
+                  x2={padding}
+                  y2={y}
+                  stroke={darkMode ? '#4B5563' : '#D1D5DB'}
+                  strokeWidth="1"
+                />
+                <text
+                  x={padding - 10}
+                  y={y + 4}
+                  textAnchor="end"
+                  fill={darkMode ? '#9CA3AF' : '#6B7280'}
+                  fontSize="12"
+                >
+                  {value}
+                </text>
+              </g>
+            );
+          })}
+
+          {/* Line */}
+          <path
+            d={contributions.map((d, i) => {
+              const x = padding + (i * xScale);
+              const y = height + padding - (d.count * yScale);
+              return `${i === 0 ? 'M' : 'L'} ${x} ${y}`;
+            }).join(' ')}
+            stroke={darkMode ? '#60A5FA' : '#3B82F6'}
+            strokeWidth="2"
+            fill="none"
+          />
+
+          {/* Points */}
+          {contributions.map((d, i) => {
+            const x = padding + (i * xScale);
+            const y = height + padding - (d.count * yScale);
+            return (
+              <circle
+                key={i}
+                cx={x}
+                cy={y}
+                r={3}
+                fill={darkMode ? '#60A5FA' : '#3B82F6'}
+                className="hover:r-4 transition-all"
+              />
+            );
+          })}
+        </svg>
+      </div>
+    );
   };
 
   if (!username) {
@@ -46,106 +200,80 @@ const ContributionCalendar = ({ username, darkMode }) => {
   }
 
   return (
-    <div className={`rounded-xl overflow-hidden shadow-lg border ${
-      darkMode ? 'bg-surface border-border' : 'bg-white border-gray-100'
-    }`}>
-      {/* Header */}
-      <div className="px-6 pt-6 pb-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center">
-            <CalendarIcon className={`w-6 h-6 mr-3 ${darkMode ? 'text-primary-light' : 'text-primary'}`} />
-            <h2 className="text-xl md:text-2xl font-display font-bold text-text">
-              Contribution Activity
-            </h2>
-          </div>
-          
-          {error && retryCount < 3 && (
-            <button 
-              onClick={handleRetry}
-              className={`flex items-center text-sm px-3 py-1 rounded-full ${
-                darkMode ? 'bg-surface hover:bg-gray-800 text-primary-light' : 'bg-gray-100 hover:bg-gray-200 text-primary'
+    <div className={`rounded-xl overflow-hidden shadow-lg ${
+      darkMode ? 'bg-surface' : 'bg-white'
+    } border ${darkMode ? 'border-border' : 'border-gray-100'}`}>
+      <div className="p-6">
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="text-xl font-display font-bold text-text">Contribution Activity</h3>
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={() => setViewMode('heatmap')}
+              className={`p-2 rounded-lg transition-colors ${
+                viewMode === 'heatmap'
+                  ? darkMode
+                    ? 'bg-primary-dark text-white'
+                    : 'bg-primary text-white'
+                  : darkMode
+                    ? 'hover:bg-surface/50 text-text-secondary'
+                    : 'hover:bg-gray-50 text-gray-600'
               }`}
+              title="Calendar View"
             >
-              <ArrowPathIcon className="w-4 h-4 mr-1" />
-              Retry
+              <CalendarIcon className="h-5 w-5" />
             </button>
-          )}
-        </div>
-        <p className="mt-1 text-text-secondary text-sm ml-9">
-          GitHub contribution calendar showing activity over the past year
-        </p>
-      </div>
-      
-      {/* Chart container */}
-      <div className={`px-6 py-4 ${darkMode ? 'bg-surface/50' : 'bg-gray-50/50'}`}>
-        <div className="flex justify-center overflow-x-auto">
-          <div className={`relative min-w-full rounded-lg ${darkMode ? 'bg-surface p-3' : 'bg-white/80 p-3 shadow-sm'}`}>
-            {/* Loading skeleton */}
-            {loading && (
-              <div className="absolute inset-0 flex items-center justify-center z-10 backdrop-blur-sm">
-                <div className="flex flex-col items-center">
-                  <div className="w-10 h-10 border-2 border-primary border-t-transparent rounded-full animate-spin mb-3"></div>
-                  <div className="text-text-secondary text-sm">Loading contribution data...</div>
-                </div>
-              </div>
-            )}
-            
-            {/* Actual contribution chart */}
-            <img 
-              ref={imgRef}
-              src={chartUrlRef.current}
-              alt={`${username}'s GitHub contribution calendar`}
-              className={`w-full relative z-20 transition-opacity duration-300 rounded ${loading ? 'opacity-30' : darkMode ? 'opacity-90' : 'opacity-100'}`}
-              onLoad={() => {
-                setLoading(false);
-              }}
-              onError={() => {
-                setLoading(false);
-                setError(true);
-              }}
-              style={{ display: error ? 'none' : 'block' }}
-            />
-            
-            {/* Fallback message for no contributions or errors */}
-            {error && (
-              <div className={`flex flex-col items-center justify-center p-8 text-center h-40 ${
-                darkMode ? 'text-text-secondary' : 'text-gray-500'
-              }`}>
-                <svg className="w-12 h-12 mb-3 opacity-50" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M10 2a8 8 0 100 16 8 8 0 000-16zm0 14a6 6 0 110-12 6 6 0 010 12zm0-9a1 1 0 011 1v3a1 1 0 01-2 0V8a1 1 0 011-1z" clipRule="evenodd" />
-                </svg>
-                <p className="text-lg font-medium">No contribution data available</p>
-                <p className="text-sm mt-2 max-w-md">
-                  This could be due to a new account, private contributions, or GitHub API limitations.
-                  {retryCount >= 3 && " We've tried multiple times but couldn't retrieve the data."}
-                </p>
-              </div>
-            )}
+            <button
+              onClick={() => setViewMode('line')}
+              className={`p-2 rounded-lg transition-colors ${
+                viewMode === 'line'
+                  ? darkMode
+                    ? 'bg-primary-dark text-white'
+                    : 'bg-primary text-white'
+                  : darkMode
+                    ? 'hover:bg-surface/50 text-text-secondary'
+                    : 'hover:bg-gray-50 text-gray-600'
+              }`}
+              title="Line Chart View"
+            >
+              <ChartBarIcon className="h-5 w-5" />
+            </button>
           </div>
         </div>
-      </div>
-      
-      {/* Legend for contribution levels */}
-      <div className={`px-6 py-4 flex justify-between items-center text-sm border-t ${
-        darkMode ? 'border-border text-text-secondary' : 'border-gray-100 text-gray-500'
-      }`}>
-        <div>Less</div>
-        <div className="flex gap-1.5">
-          {[0, 1, 2, 3, 4].map((level) => (
-            <div 
-              key={level}
-              className={`w-4 h-4 rounded transition-transform hover:scale-110 ${
-                level === 0 ? `${darkMode ? 'border border-border bg-surface/80' : 'border border-gray-200 bg-white'}` : ''
-              }`} 
-              style={{ 
-                backgroundColor: level === 0 ? '' : darkMode 
-                  ? `rgba(96, 165, 250, ${level * 0.25})` 
-                  : `rgba(59, 130, 246, ${level * 0.25})` 
-              }}
-            ></div>
-          ))}
-        </div>
-        <div>More</div>
+
+        {loading ? (
+          <div className="flex items-center justify-center h-64">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          </div>
+        ) : error ? (
+          <div className="flex flex-col items-center justify-center h-64 text-center">
+            <p className={`mb-4 ${darkMode ? 'text-red-400' : 'text-red-600'}`}>
+              {error}
+            </p>
+            {retryCount < maxRetries && (
+              <button
+                onClick={handleRetry}
+                className={`flex items-center px-4 py-2 rounded-lg transition-colors ${
+                  darkMode
+                    ? 'bg-surface/50 hover:bg-surface text-primary-light'
+                    : 'bg-gray-50 hover:bg-gray-100 text-primary'
+                }`}
+              >
+                <ArrowPathIcon className="h-5 w-5 mr-2" />
+                Retry
+              </button>
+            )}
+          </div>
+        ) : contributions.length === 0 ? (
+          <div className="flex items-center justify-center h-64">
+            <p className={`text-center ${darkMode ? 'text-text-secondary' : 'text-gray-600'}`}>
+              No contribution data available
+            </p>
+          </div>
+        ) : (
+          <div className="relative">
+            {viewMode === 'heatmap' ? renderHeatmap() : renderLineChart()}
+          </div>
+        )}
       </div>
     </div>
   );
