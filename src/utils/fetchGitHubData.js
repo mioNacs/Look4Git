@@ -27,6 +27,51 @@ export const fetchUserData = async (username) => {
   }
 };
 
+export const fetchContributionData = async (username) => {
+  try {
+    // Get user events (up to 100, API limitation)
+    const events = await githubApi.get(`/users/${username}/events?per_page=100`);
+    
+    // Get dates for the past year
+    const today = new Date();
+    const oneYearAgo = new Date();
+    oneYearAgo.setFullYear(today.getFullYear() - 1);
+    
+    // Initialize an object to track contributions by date
+    const contributionsByDate = {};
+    
+    // Initialize all dates in the past year with 0 contributions
+    for (let d = new Date(oneYearAgo); d <= today; d.setDate(d.getDate() + 1)) {
+      const dateString = d.toISOString().split('T')[0];
+      contributionsByDate[dateString] = 0;
+    }
+    
+    // Count contributions from events
+    events.data.forEach(event => {
+      // Only count certain event types as contributions
+      if (['PushEvent', 'CreateEvent', 'PullRequestEvent', 'CommitCommentEvent', 'IssuesEvent', 'IssueCommentEvent'].includes(event.type)) {
+        const date = event.created_at.split('T')[0];
+        if (contributionsByDate[date] !== undefined) {
+          contributionsByDate[date]++;
+        }
+      }
+    });
+    
+    // Convert to array format for recharts
+    const formattedData = Object.entries(contributionsByDate).map(([date, count]) => ({
+      date,
+      contributions: count
+    })).sort((a, b) => new Date(a.date) - new Date(b.date));
+    
+    return formattedData;
+  } catch (error) {
+    if (error.response?.status === 403) {
+      throw new Error('GitHub API rate limit exceeded. Please try again later or add an authentication token.');
+    }
+    throw new Error(`Failed to fetch contribution data: ${error.message}`);
+  }
+};
+
 export const fetchLatestCommit = async (username, repoName) => {
   try {
     const response = await githubApi.get(`/repos/${username}/${repoName}/commits?per_page=1`);

@@ -309,10 +309,18 @@ function App() {
               {compareMode && userData1 && userData2 && (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
                   <div className="animate-slide-up animation-delay-500">
-                    <ContributionCalendar username={userData1.login} darkMode={darkMode} />
+                    <ContributionCalendar 
+                      username={userData1.login} 
+                      darkMode={darkMode} 
+                      key={`contributions-${userData1.login}`} 
+                    />
                   </div>
                   <div className="animate-slide-up animation-delay-600">
-                    <ContributionCalendar username={userData2.login} darkMode={darkMode} />
+                    <ContributionCalendar 
+                      username={userData2.login} 
+                      darkMode={darkMode}
+                      key={`contributions-${userData2.login}`}
+                    />
                   </div>
                 </div>
               )}
@@ -333,7 +341,11 @@ function App() {
               {!compareMode && userData1 && (
                 <>
                   <div className="animate-slide-up animation-delay-300">
-                    <ContributionCalendar username={userData1.login} darkMode={darkMode} />
+                    <ContributionCalendar 
+                      username={userData1.login} 
+                      darkMode={darkMode}
+                      key={`contributions-${userData1.login}`}
+                    />
                   </div>
                   
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
