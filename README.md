@@ -25,8 +25,8 @@ A modern GitHub profile analyzer that provides detailed insights into your codin
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/yourusername/gitsight.git
-   cd gitsight
+   git clone https://github.com/mioNacs/Look4Git.git
+   cd Look4Git
    ```
 
 2. Install dependencies:
@@ -49,6 +49,26 @@ A modern GitHub profile analyzer that provides detailed insights into your codin
    ```
 
 5. Open [http://localhost:5173](http://localhost:5173) in your browser
+
+### Deployment
+
+To deploy the application to GitHub Pages:
+
+1. Build the application:
+   ```bash
+   npm run build
+   # or
+   yarn build
+   ```
+
+2. Deploy to GitHub Pages:
+   ```bash
+   npm run deploy
+   # or
+   yarn deploy
+   ```
+
+The application will be available at: [https://mioNacs.github.io/Look4Git/](https://mioNacs.github.io/Look4Git/)
 
 ## 🛠️ Built With
 
@@ -100,6 +120,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📞 Contact
 
-Your Name - [@yourtwitter](https://twitter.com/yourtwitter)
-
-Project Link: [https://github.com/yourusername/gitsight](https://github.com/yourusername/gitsight)
+Project Link: [https://github.com/mioNacs/Look4Git](https://github.com/mioNacs/Look4Git)
