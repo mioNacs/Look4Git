@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" fill="none">
+  <!-- Main circular background -->
+  <circle cx="100" cy="100" r="90" fill="url(#grad1)" opacity="0.9" />
+  
+  <!-- Magnifying glass handle -->
+  <path d="M150 150L180 180" stroke="#3B82F6" stroke-width="12" stroke-linecap="round" />
+  
+  <!-- Magnifying glass circle with gradient border -->
+  <circle cx="95" cy="95" r="55" stroke="url(#grad2)" stroke-width="6" fill="none" />
+  
+  <!-- Git network inside -->
+  <circle cx="75" cy="75" r="8" fill="#3B82F6" />
+  <circle cx="75" cy="115" r="8" fill="#3B82F6" />
+  <circle cx="115" cy="95" r="8" fill="#3B82F6" />
+  <circle cx="115" cy="65" r="8" fill="#3B82F6" />
+  
+  <path d="M75 83V107" stroke="#3B82F6" stroke-width="4" stroke-linecap="round" />
+  <path d="M75 115H115" stroke="#3B82F6" stroke-width="4" stroke-linecap="round" />
+  <path d="M115 87V103" stroke="#3B82F6" stroke-width="4" stroke-linecap="round" />
+  <path d="M115 65V73" stroke="#3B82F6" stroke-width="4" stroke-linecap="round" />
+  <path d="M83 75H107" stroke="#3B82F6" stroke-width="4" stroke-linecap="round" />
+  
+  <!-- Gradient definitions -->
+  <defs>
+    <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#E0F2FE" stop-opacity="0.1" />
+      <stop offset="100%" stop-color="#2563EB" stop-opacity="0.05" />
+    </linearGradient>
+    <linearGradient id="grad2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#60A5FA" />
+      <stop offset="100%" stop-color="#3B82F6" />
+    </linearGradient>
+  </defs>
+</svg> 
