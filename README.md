@@ -54,19 +54,32 @@ A modern GitHub profile analyzer that provides detailed insights into your codin
 
 To deploy the application to GitHub Pages:
 
-1. Build the application:
+1. Make sure your `.env.production` file has an empty token value:
+   ```
+   VITE_GITHUB_TOKEN=
+   ```
+
+2. Build the application:
    ```bash
    npm run build
    # or
    yarn build
    ```
 
-2. Deploy to GitHub Pages:
+3. Deploy to GitHub Pages:
    ```bash
    npm run deploy
    # or
    yarn deploy
    ```
+
+4. After deployment, you'll need to manually add your GitHub token in the GitHub Pages environment:
+   - Go to your repository on GitHub
+   - Navigate to Settings > Pages
+   - Under "Environment variables", add a new variable:
+     - Name: `VITE_GITHUB_TOKEN`
+     - Value: Your GitHub Personal Access Token
+   - Click "Save"
 
 The application will be available at: [https://mioNacs.github.io/Look4Git/](https://mioNacs.github.io/Look4Git/)
 

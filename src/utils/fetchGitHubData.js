@@ -11,8 +11,9 @@ const githubApi = axios.create({
 });
 
 // Add authentication if token is available
-if (import.meta.env.VITE_GITHUB_TOKEN) {
-  githubApi.defaults.headers.common['Authorization'] = `Bearer ${import.meta.env.VITE_GITHUB_TOKEN}`;
+const token = import.meta.env.VITE_GITHUB_TOKEN;
+if (token) {
+  githubApi.defaults.headers.common['Authorization'] = `Bearer ${token}`;
 }
 
 export const fetchUserData = async (username) => {
